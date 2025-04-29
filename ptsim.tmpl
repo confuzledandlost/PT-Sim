@@ -10,18 +10,21 @@
 
 >> Fill in the names and email addresses of your group members.
 
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
+Brandon Robinson <robinsonb@sonoma.edu>
+Rakeen Mazumder <mazumderr@sonoma.edu>
 
 ---- PRELIMINARIES ----
 
 >> If you have any preliminary comments on your submission or
 >> bug notes for the course staff, please give them here.
 
+None.
+
 >> Please cite any offline or online sources you consulted while
 >> preparing your submission, other than man pages, course
 >> text, lecture notes, and course staff.
 
+None.
 
                PAGE TABLE SIMULATOR
                ====================
@@ -46,11 +49,53 @@ FirstName LastName <email@domain.example>
 >> 0x40
 >>
 
+For this page table:
+- Virtual address: 7 bits
+- Physical address: 8 bits
+- Page size: 32 bytes
+
+Step 1: Calculate offset bits = log2(32) = 5 bits
+Step 2: Virtual page number bits = 7 - 5 = 2 bits
+Step 3: Number of pages = 2^2 = 4 pages
+
+For address 0x05 (decimal 5):
+- Page number = 5 >> 5 = 0
+- Offset = 5 & 0x1F = 5
+- Page 0 is invalid but has permission, so: DISK
+
+For address 0x7F (decimal 127):
+- Page number = 127 >> 5 = 3
+- Offset = 127 & 0x1F = 31
+- Page 3 is valid with frame 2, so: 2 << 5 | 31 = 64 + 31 = 95 (0x5F)
+
+For address 0x3B (decimal 59):
+- Page number = 59 >> 5 = 1
+- Offset = 59 & 0x1F = 27
+- Page 1 is valid with frame 4, so: 4 << 5 | 27 = 128 + 27 = 155 (0x9B)
+
+For address 0x7F (decimal 127): (same as before)
+- Result: 95 (0x5F)
+
+For address 0x40 (decimal 64):
+- Page number = 64 >> 5 = 2
+- Offset = 64 & 0x1F = 0
+- Page 2 is valid with frame 5, so: 5 << 5 | 0 = 160 (0xA0)
+
 >> A2. It is ok if your program just reads every row of the input file,
 >> but it is possible to compute how many rows you might expect.
 >> Show a computation to determine how many rows are in the page table
 >> using the first row of the input file shows above: 7 8 32
 
+Number of rows in page table = Number of virtual pages = 2^(virtual address bits - offset bits)
+
+Given:
+- Virtual address bits (N) = 7
+- Page size = 32 bytes
+
+Offset bits = log2(page size) = log2(32) = 5 bits
+Number of page table rows = 2^(7-5) = 2^2 = 4 rows
+
+So we expect 4 rows in the page table (which matches the example).
 
 ---- DATA STRUCTURES ----
 
@@ -58,11 +103,123 @@ FirstName LastName <email@domain.example>
 >> `struct' member, global or static variable, `typedef', or enumeration.
 >> Identify the purpose of each in 25 words or less.
 
+Since we're using Python, we don't have traditional struct declarations, but here are the primary data structures:
+
+```python
+class PageTable:
+    def __init__(self, n_bits, m_bits, page_size):
+        self.n_bits = n_bits      # Number of bits in virtual address
+        self.m_bits = m_bits      # Number of bits in physical address
+        self.page_size = page_size # Size of a page in bytes
+        self.num_pages = 2 ** (n_bits - self.calc_offset_bits())  # Number of pages
+        self.entries = []         # List of page table entries
+        self.clock_pointer = 0    # Clock algorithm pointer
+```
+
+Page table entry (stored as dictionary in self.entries):
+```python
+entry = {
+    'valid': int,      # Whether page is in memory (1) or not (0)
+    'permission': int, # Access permissions
+    'frame': int,      # Physical frame number
+    'used': int        # Whether page has been recently used (1) or not (0)
+}
+```
+
 ---- FUNCTIONS ----
 
 >> A4: Provide a prototype and documentation for each function
 >> you have introduced to support this portion of the project.
 >> Use the Google Style Guide for function documentation.
+
+```python
+def calc_offset_bits(self):
+    """Calculate number of bits needed for page offset.
+    
+    Returns:
+        int: Number of bits needed for the offset.
+    """
+```
+
+```python
+@staticmethod
+def bits_needed(value):
+    """Calculate number of bits needed to represent a value.
+    
+    Args:
+        value: The value to calculate bits for.
+        
+    Returns:
+        int: Number of bits needed.
+    """
+```
+
+```python
+def load_page_table(self, filename):
+    """Load page table from file.
+    
+    Args:
+        filename: Path to the page table file.
+        
+    Raises:
+        ValueError: If file format is incorrect.
+        FileNotFoundError: If file doesn't exist.
+    """
+```
+
+```python
+def translate_address(self, virtual_addr, use_clock=False):
+    """Translate virtual address to physical address.
+    
+    Args:
+        virtual_addr: Virtual address to translate.
+        use_clock: Whether to use Clock algorithm for page faults.
+        
+    Returns:
+        str or int: Physical address as integer, or string message ("DISK", "SEGFAULT").
+        tuple: For page faults with Clock, returns (pagefault_msg, physical_addr).
+    """
+```
+
+```python
+def is_hex(s):
+    """Check if input string is a hex number.
+    
+    Args:
+        s: Input string.
+        
+    Returns:
+        bool: True if hex, False otherwise.
+    """
+```
+
+```python
+def parse_address(addr_str):
+    """Parse address input as decimal or hex.
+    
+    Args:
+        addr_str: Address string.
+        
+    Returns:
+        int: Parsed address value.
+        
+    Raises:
+        ValueError: If address format is invalid.
+    """
+```
+
+```python
+def format_output(value, use_hex=False):
+    """Format output as decimal or hex.
+    
+    Args:
+        value: Value to format.
+        use_hex: Whether to format as hex.
+        
+    Returns:
+        str: Formatted output string.
+    """
+```
 
 ---- ALGORITHMS ----
 
@@ -70,8 +227,25 @@ FirstName LastName <email@domain.example>
 >> transformations of data, and relevant support functions you used
 >> to accomplish this.
 
+For bit-wise transformations, we use Python's built-in bitwise operators:
 
+1. **Extracting page number and offset**:
+   - Calculate offset_bits = log2(page_size)
+   - Create offset_mask = (1 << offset_bits) - 1
+   - Extract offset = virtual_addr & offset_mask
+   - Extract page_num = (virtual_addr >> offset_bits) & page_mask
 
+2. **Calculating physical address**:
+   - physical_addr = (frame << offset_bits) | offset
+
+This approach uses bit shifting and masking to perform the address translation efficiently. The `bits_needed()` helper function calculates the number of bits required to represent a value, which is used to determine the number of offset bits based on page size.
+
+The translation algorithm follows these steps:
+1. Parse the virtual address
+2. Extract page number and offset
+3. Check if page number is valid
+4. Check page permissions
+5. Calculate and return physical address or appropriate message
 
                CLOCK REPLACEMENT SIMULATOR
                ===========================
@@ -96,12 +270,56 @@ FirstName LastName <email@domain.example>
 >> 0x40
 >>
 
+Initial state:
+- Page 0: Invalid, permission=1, frame=0, used=0
+- Page 1: Valid, permission=1, frame=4, used=0
+- Page 2: Valid, permission=1, frame=5, used=1
+- Page 3: Valid, permission=1, frame=2, used=0
+- Clock pointer starts at first frame (page 1)
+
+For address 0x05 (page 0):
+- Page fault (page 0 is invalid)
+- Clock algorithm: Check page 1 (used=0) → evict page 1
+- Update: Page 0 becomes valid with frame 4, used=1
+- Result: PAGEFAULT, then 4 << 5 | 5 = 133 (0x85)
+
+For address 0x7F (page 3):
+- Page 3 is valid, update used=1
+- Result: 2 << 5 | 31 = 95 (0x5F)
+
+For address 0x3B (page 1):
+- Page 1 is now invalid (was evicted)
+- Page fault, Clock algorithm: Check page 2 (used=1) → set used=0, move to page 3
+- Check page 3 (used=1) → set used=0, move to page 0
+- Check page 0 (used=1) → set used=0, move to page 2
+- Check page 2 (used=0) → evict page 2
+- Update: Page 1 becomes valid with frame 5, used=1
+- Result: PAGEFAULT, then 5 << 5 | 27 = 187 (0xBB)
+
+For address 0x7F (page 3):
+- Page 3 is valid, update used=1
+- Result: 2 << 5 | 31 = 95 (0x5F)
+
+For address 0x40 (page 2):
+- Page 2 is now invalid (was evicted)
+- Page fault, Clock algorithm: Check page 3 (used=1) → set used=0, move to page 0
+- Check page 0 (used=0) → evict page 0
+- Update: Page 2 becomes valid with frame 4, used=1
+- Result: PAGEFAULT, then 4 << 5 | 0 = 128 (0x80)
+
 ---- DATA STRUCTURES ----
 
 >> B2: Copy here the declaration of each new or changed `struct',
 >> `struct' member, global or static variable, `typedef', or enumeration.
 >> Identify the purpose of each in 25 words or less.
 
+For Part B, we added the following member to the PageTable class:
+
+```python
+self.clock_pointer = 0  # Index pointing to current frame in Clock algorithm rotation
+```
+
+No additional data structures were needed beyond what was defined in Part A.
 
 ---- FUNCTIONS ----
 
@@ -109,11 +327,43 @@ FirstName LastName <email@domain.example>
 >> you have introduced to support this portion of the project.
 >> Use the Google Style Guide for function documentation.
 
+```python
+def handle_page_fault(self, page_num):
+    """Handle page fault using Clock algorithm.
+    
+    Finds a page to evict using the Clock algorithm,
+    evicts it, and loads the new page.
+    
+    Args:
+        page_num: Virtual page number that caused the fault.
+        
+    Returns:
+        int: The evicted page number.
+    """
+```
+
 ---- ALGORITHMS ----
 
 >> B4. Describe the data structure you used to search through the frames
 >> following the clock rotation, and how you might improve efficiency
 >> if this was an actual implementation rather than a simulation.
+
+For the Clock algorithm, we use a simple integer pointer (`clock_pointer`) that keeps track of the current position in the page table entries list. We sequentially search through the entries, wrapping around when we reach the end.
+
+Algorithm steps:
+1. Start at the current clock pointer position
+2. Check if the current page is valid:
+   - If valid and used=0, select for eviction
+   - If valid and used=1, give second chance (set used=0)
+3. Advance the clock pointer and continue until a page is selected
+4. Update page table entries to reflect the eviction and new mapping
+
+For an actual implementation (rather than simulation), efficiency improvements could include:
+1. **Separate data structures for valid and invalid pages**: Maintain separate lists for valid and invalid pages to avoid checking invalid pages.
+2. **Two-handed clock**: Use a second pointer that lags behind the main pointer to increase efficiency of finding candidates.
+3. **Hardware support**: Use hardware TLB and dedicated circuits to perform the clock algorithm in parallel.
+4. **Multi-level page tables**: Implement hierarchical page tables to reduce memory overhead.
+5. **Cache-aware design**: Structure data to improve cache locality for frequently accessed entries.
 
 ---- RATIONALE ----
 
@@ -122,6 +372,17 @@ FirstName LastName <email@domain.example>
 >> description? Explain any judgements you used in implementing
 >> unclear or unspecified behavior.
 
+Several ambiguous scenarios were addressed:
+
+1. **Initial clock pointer position**: The specification didn't explicitly state where the clock pointer should start. We chose to start at the first frame among the in-use frames, corresponding to the first valid page in the table.
+
+2. **Handling invalid pages during clock rotation**: We skip invalid pages during clock rotation since these pages are not in memory and cannot be evicted.
+
+3. **Used bit handling**: When a page is accessed, we set its used bit to 1. During clock rotation, we give pages a second chance by setting used=0 and moving on.
+
+4. **Clock advancement after eviction**: After evicting a page, we advance the clock pointer to the next position rather than staying at the same position. This helps distribute evictions more evenly.
+
+5. **Handling a situation where all pages are marked used=1**: In this case, we make a full rotation through the table, setting all used bits to 0, and then select the first page we encounter on the second pass.
 
                SURVEY QUESTIONS
                ================
