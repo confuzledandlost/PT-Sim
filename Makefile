@@ -13,11 +13,11 @@ all: ptsim ptsim-clock
 
 ptsim: pt-sim.sh
 	cp pt-sim.sh ptsim
-	@echo -e ${msg} >> ptsim
+#	@echo -e ${msg} >> ptsim
 
 ptsim-clock: pt-sim-clock.sh
 	cp pt-sim-clock.sh ptsim-clock
-	@echo -e ${msg} >> ptsim-clock
+#	@echo -e ${msg} >> ptsim-clock
 
 clean:
 	rm -f ptsim ptsim-clock
