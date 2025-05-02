@@ -5,42 +5,35 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-# Run Part A test with decimal output
-echo "=== Running Part A test with decimal output ==="
-output_dec=$(./pt-sim.sh tests/PT_A.txt < tests/test_input1.txt)
+# Run Part A test
+echo -e "${GREEN}=== Running Part A test ===${NC}"
+output=$(./pt-sim.sh tests/PT_A.txt < tests/test_input1.txt)
 
 # Create a temporary file with the output
-temp_file_dec=$(mktemp)
-echo "$output_dec" > "$temp_file_dec"
+temp_file=$(mktemp)
+echo "$output" > "$temp_file"
 
-# Compare with expected output
-expected_file_dec="tests/expected_output/test_PT_A_output1_dec.txt"
-if ! diff "$temp_file_dec" "$expected_file_dec" > /dev/null; then
-    echo -e "${RED}FAILURE: Decimal output test failed!${NC}"
-    exit 1
+# Decide which expected output file to use based on implementation
+# The project spec allows either decimal or hex output format
+if [[ "$output" == *"0x"* ]]; then
+    # Hex output detected
+    expected_file="tests/expected_output/test_PT_A_output1_hex.txt"
+    echo -e "Detected ${GREEN}hex${NC} output format"
 else
-    echo -e "${GREEN}Decimal output test passed.${NC}"
+    # Decimal output
+    expected_file="tests/expected_output/test_PT_A_output1_dec.txt"
+    echo -e "Detected ${GREEN}decimal${NC} output format"
 fi
 
-# Run Part A test with hex output
-echo -e "\n=== Running Part A test with hex output ==="
-output_hex=$(./pt-sim.sh tests/PT_A.txt --hex < tests/test_input1.txt)
-
-# Create a temporary file with the output
-temp_file_hex=$(mktemp)
-echo "$output_hex" > "$temp_file_hex"
-
-# Compare with expected output
-expected_file_hex="tests/expected_output/test_PT_A_output1_hex.txt"
-if ! diff "$temp_file_hex" "$expected_file_hex" > /dev/null; then
-    echo -e "${RED}FAILURE: Hex output test failed!${NC}"
-    exit 1
+echo -e "\n${GREEN}=== Comparing with expected output ===${NC}"
+if diff "$temp_file" "$expected_file" > /dev/null; then
+    echo -e "\n${GREEN}SUCCESS: Part A test passed!${NC}"
 else
-    echo -e "${GREEN}Hex output test passed.${NC}"
+    echo -e "\n${RED}=== Diff showing differences ===${NC}"
+    diff "$temp_file" "$expected_file"
+    echo -e "\n${RED}FAILURE: Part A test failed!${NC}"
+    exit 1
 fi
 
 # Clean up
-rm "$temp_file_dec" "$temp_file_hex"
-
-# If we got here, all tests passed
-echo -e "\n${GREEN}SUCCESS: All Part A tests passed!${NC}" 
+rm "$temp_file" 

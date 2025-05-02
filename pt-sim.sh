@@ -1,4 +1,11 @@
-# PT-Sim-Clock shell script
-# This script runs the page table simulator for Part B with Clock algorithm
+# PT-Sim shell script
+# This script runs the page table simulator for Part A
 
-python3 ptsim.py "$1" --hex
+# Run the Python implementation
+python3 ptsim.py "$1"
+
+# If it were a binary called pt-sim.x, just do
+# ./pt-sim.x $1
+# and it will read from stdin, as normal
+
+
