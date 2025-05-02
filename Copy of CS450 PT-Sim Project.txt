@@ -1,0 +1,71 @@
+﻿Project: PT-Sim
+BACKGROUND
+In this assignment, you will build a page table simulator. The simulator will do virtual address translation, and it will be expanded in Part B to simulate the Clock / Second Chance page replacement algorithm.
+Project starting files are available at https://github.com/gondree/cs450_ptsim
+Someone in your team should turn in to Canvas the following:
+* a TAR or TGZ containing:
+   * all the source files of your project and the makefile
+   * the structure of your project should reflect the structure of the starter code
+* the design document. 
+ I should be able to compile and run your program using the following commands:
+$ make ptsim
+$ sh ptsim test/somePageTableFile < test/someInputFile
+	I will test your code on the CS department server (blue.cs.sonoma.edu). Your project should introduce no special dependencies re: libraries not already available by default on blue. 
+You are allowed to implement your project using C, C++ or Python. Since this is a simulator, we do not need to develop in a systems-programming language and we do not care about efficiency.
+You should modify the Makefile to include new targets for building your code. The file ptsim and ptsim-clock are both shell scripts, generated from the shell scripts pt-sim.sh and ptsim-clock.sh. You should modify the original scripts (pt-sim.sh, ptsim-clock.sh) to call your binaries.
+PART A REQUIREMENTS
+Your program should read in a description of the state of a page table (a "Page Table File"). The file name will be passed to your program on the command line as its first argument. It will have the following format:
+* The first line gives three values:  N M SIZE
+   * N is the number of bits in the virtual address
+   * M is the number of bits in the physical address
+   * SIZE is the size of a page in bytes
+* The next lines are each a single row of the page table:  V P F U
+   * V is an ASCII char (1/0) representing if the page is valid or not (1 indicates the page is in memory)
+   * P is an ASCII char (0–7) representing the access permissions (0 means no access, any other value specifies the type of access permitted)
+   * F is the frame number
+   * U is an ASCII char (1/0) representing if the page has been recently used (this can be ignored for Part A)
+* You can calculate the number of rows of the page table, from the description of the system in the first line
+* If the page is marked invalid (V = 0), it will have some F value (per the format) but that F value is ignorable.
+Here is an example Page Table File:
+7 8 32
+0 0 0 0
+1 1 2 1
+1 1 6 1
+1 1 1 0
+	You can assume the Page Table File is formatted correctly and describes a valid system. You should not make any assumptions about whitespace. The Page Table File may contain blank lines, which should be ignored.
+Your program should:
+1. Read the page table file
+2. Repeatedly, until EOF (Control+D) is reached:
+   1. Read a virtual address from stdin, which will be either decimal or hex (when address is in hex, it will be prepended with '0x')
+   2. Translates the virtual address and prints the corresponding physical address (in either hex or decimal, your choice / whatever is easier for you)
+   3. If a page is not in physical memory but the permission bit is not zero, print DISK
+   4. If a page is not in physical memory and the permission bit is zero, print SEGFAULT
+TESTING
+I have included a few tests in the 'tests' directory provided with the starter code, which you can run to begin testing. These are not the full set of tests that I will run while grading your executable. You are encouraged to make your own test scenarios, to test your logic.
+RECOMMENDED MILESTONES
+It can be hard to tell where to start sometimes. You do not need to do it this way, but these suggestions may be useful.
+1. Create the logic for handling the Page Table File:
+   * Read the first line and compute the number of rows expected in the table
+   * Read each subsequent row from the file, looping until they are all found
+2. Make a function that reads an address from stdin
+3. Make a function that translates an address using the page table and returns it
+4. Extend the function to react to the DISK scenario, updating the page table and implementing the replacement algorithm
+PROJECT RUBRIC
+The collaboration policy will be strictly enforced in this assignment, using automated program similarity-checking. There are no tests related to memory leaks or input validation.
+Functional tests
+	
+
+	Proportional to Part A functional tests passed
+	20 pts
+	Proportional to Part B functional tests passed
+	30 pts
+	Design
+	
+
+	Completed Design Document
+	50 pts
+	Total for assignment
+	100 pts
+	
+
+⚠️Warning: The Design Document asks you to document globals. If you are using Python and  don't know how to check that, you can inspect the globals using print(globals().keys()) and feel free to use Google/Piazza for more help. Any symbols to variables or data structures you created need to be documented (or, if appropriate, simply transformed into non-globals). You do not need to document functions or symbols made global due to import directives.
