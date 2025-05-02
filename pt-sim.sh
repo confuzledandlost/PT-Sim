@@ -1,7 +1,11 @@
-echo "Welcome to PT-Sim, the page table simulator"
-echo "Using input file $1"
+# PT-Sim shell script
+# This script runs the page table simulator for Part A
 
-# This is where you would run your program
+if [[ "$2" == "--hex" ]]; then
+    python3 ptsim.py "$1" --hex
+else
+    python3 ptsim.py "$1"
+fi
 
 # If it were a binary called pt-sim.x, just do
 # ./pt-sim.x $1
