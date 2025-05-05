@@ -79,7 +79,7 @@ class PageTable:
             print(f"Error loading page table: {e}")
             sys.exit(1)
     
-    def translate_address(self, virtual_addr, use_clock=False):
+    def translate_address(self, virtual_addr, use_clock=False, use_hex=False):
         """Translate virtual address to physical address"""
         # Calculate offset bits
         offset_bits = self.calc_offset_bits()
@@ -105,7 +105,10 @@ class PageTable:
                 # Part B: Handle page fault with Clock algorithm
                 evicted_page, frame = self.handle_page_fault(page_num)
                 physical_addr = (frame << offset_bits) | offset
-                return f"PAGEFAULT {hex(evicted_page)}" if "--hex" in sys.argv else f"PAGEFAULT {evicted_page}", physical_addr
+                
+                # Format the result as "PAGEFAULT physical_addr"
+                physical_addr_formatted = format_output(physical_addr, use_hex)
+                return f"PAGEFAULT {physical_addr_formatted}"
             else:
                 # Part A: Just report disk access
                 return "DISK"
@@ -115,7 +118,7 @@ class PageTable:
         
         # Calculate physical address
         physical_addr = (entry['frame'] << offset_bits) | offset
-        return physical_addr
+        return format_output(physical_addr, use_hex)
     
     def handle_page_fault(self, page_num):
         """Handle page fault using Clock algorithm"""
@@ -211,25 +214,33 @@ def main():
     
     # Process input addresses
     try:
+        # Read all inputs at once to handle the last line special case
+        inputs = []
         while True:
-            line = input().strip()
-            if not line:
-                continue
-            
+            try:
+                line = input().strip()
+                if line:
+                    inputs.append(line)
+            except EOFError:
+                break
+        
+        # Process each input
+        for i, line in enumerate(inputs):
             try:
                 virtual_addr = parse_address(line)
-                result = page_table.translate_address(virtual_addr, use_clock)
+                result = page_table.translate_address(virtual_addr, use_clock, use_hex)
                 
-                if isinstance(result, tuple):
-                    pagefault_msg, physical_addr = result
-                    print(pagefault_msg)
-                    print(format_output(physical_addr, use_hex))
+                # Print the result with a newline except for the last line
+                if i == len(inputs) - 1:
+                    print(result)  # Include newline for last result for exact match
                 else:
-                    print(format_output(result, use_hex))
+                    print(result)  # Newline for all other results
             except ValueError as e:
                 print(f"Error: {e}")
-    except EOFError:
-        pass
+                
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

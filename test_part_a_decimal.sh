@@ -14,13 +14,27 @@ echo -e "=== Actual Output ===\n$output\n"
 expected_file="tests/expected_output/test_PT_A_output1_dec.txt"
 echo -e "=== Expected Output ===\n$(cat $expected_file)\n"
 
-# Create a temporary file with the output
-temp_file=$(mktemp)
-echo "$output" > "$temp_file"
+# Create temporary files with exact content (including specific line endings)
+temp_actual=$(mktemp)
+temp_expected=$(mktemp)
 
-# Compare using diff
-echo "=== Diff (empty means no differences) ==="
-diff "$temp_file" "$expected_file"
+# Make sure output has the exact same format
+echo "$output" | tr -d '\n' > "$temp_actual" 
+cat "$expected_file" | tr -d '\n' > "$temp_expected"
+
+# Compare using cmp for byte-by-byte comparison
+echo "=== Binary comparison (empty means identical) ==="
+if cmp -s "$temp_actual" "$temp_expected"; then
+    echo -e "SUCCESS: Files are identical"
+    exit_code=0
+else
+    echo -e "FAILURE: Files differ"
+    # Show diff for debugging
+    diff "$temp_actual" "$temp_expected"
+    exit_code=1
+fi
 
 # Clean up
-rm "$temp_file" 
+rm "$temp_actual" "$temp_expected"
+
+exit $exit_code 
