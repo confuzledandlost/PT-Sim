@@ -176,8 +176,7 @@ def translate_address(self, virtual_addr, use_clock=False):
         use_clock: Whether to use Clock algorithm for page faults.
         
     Returns:
-        str or int: Physical address as integer, or string message ("DISK", "SEGFAULT").
-        tuple: For page faults with Clock, returns (pagefault_msg, physical_addr).
+        formatted str: Physical address as integer, or string message ("DISK", "SEGFAULT").
     """
 ```
 
